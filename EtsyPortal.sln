@@ -5,6 +5,8 @@ VisualStudioVersion = 15.0.26430.6
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EtsyPortal", "EtsyPortal\EtsyPortal.csproj", "{87F25015-8985-41BD-B598-37392157864C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EtsyServices", "EtsyServices\EtsyServices.csproj", "{75FB8865-535C-4C16-9BF6-4747FCAACBCD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{87F25015-8985-41BD-B598-37392157864C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{87F25015-8985-41BD-B598-37392157864C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{87F25015-8985-41BD-B598-37392157864C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{75FB8865-535C-4C16-9BF6-4747FCAACBCD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{75FB8865-535C-4C16-9BF6-4747FCAACBCD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{75FB8865-535C-4C16-9BF6-4747FCAACBCD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{75FB8865-535C-4C16-9BF6-4747FCAACBCD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

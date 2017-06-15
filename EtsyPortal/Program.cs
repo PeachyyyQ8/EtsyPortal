@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
-using System.Reflection;
-using EtsyServicer.DomainObjects;
 using EtsyServicer.DomainObjects.Enums;
 using EtsyServices;
 using EtsyServices.DomainObjects;
@@ -24,20 +24,9 @@ namespace EtsyPortal
                 _etsyService = container.GetInstance<IEtsyService>();
 
 
-                var workingDirectory = SettingsHelper.GetAppSetting("workingDirectory");
+                var workingDirectory = GetWorkingDirectory();
 
-                if (workingDirectory.IsNullOrEmpty())
-                {
-                    Console.Write("Enter working directory: ");
-                    SettingsHelper.SetAppSetting("workingDirectory", Console.ReadLine());
-                    workingDirectory = SettingsHelper.GetAppSetting("workingDirectory");
-                }
-
-
-                //string startPath = workingDirectory + "Files";
-                //string zipPath = workingDirectory + args[0] + ".zip";
-
-                //ZipFile.CreateFromDirectory(startPath, zipPath);
+                
                 
                 if (args[0].IsNullOrEmpty() || args[1].IsNullOrEmpty() || args[2].IsNullOrEmpty())
                 {
@@ -45,7 +34,6 @@ namespace EtsyPortal
                 }
                 decimal price;
                 bool isCustomizable;
-                Tags tags;
                 
                 _etsyService.Configure(new[] { "listings_w", "listings_r" });
                 Listing listing = new Listing();
@@ -61,40 +49,20 @@ namespace EtsyPortal
                 listing.IsCustomizable = bool.TryParse(args[2], out isCustomizable) && isCustomizable;
                 listing.IsDigital = true;
                 listing.ShippingTemplateId = 30116314577;
-                listing.Image = FindWatermarkedImage(workingDirectory);
-
-                if (!args[3].IsNullOrEmpty())
+                listing.Images = new[] { new ListingImage
                 {
-                    args[3] = args[3].ToUpper();
-                }
-                if (Enum.TryParse(args[3], out tags))
-                {
-                    var standardTagString = string.Empty;
-                    var props = typeof(Tags).GetProperties();
-                    var property = (from p in props
-                        where p.Name == tags.ToString()
-                        select p).First();
+                    ImageFile = GetWatermarkedImage(workingDirectory),
+                    Overwrite = true,
+                    IsWatermarked = true,
+                    Rank = 1}
+                };
+                listing.Tags = ParseTags(args);
 
-                   object[] attrs = property.GetCustomAttributes(true);
-                        foreach (var a in attrs)
-                        {
-                            var attr = a as StringValueAttribute;
-                            if (attr != null)
-                            {
-                                standardTagString = attr.Value;
-                            }
-                        }
-                    
-                    List<string> standardTagArray = standardTagString.Split(',').ToList();
-                    if (args.Length == 5)
-                    {
-                        var additionalTags = args[4].Split(',').ToList();
-                        standardTagArray.AddRange(additionalTags);
-                        listing.Tags = standardTagArray.ToArray();
-                    }
-                    
-                }
-                
+                var zipName = GetZipName(workingDirectory);
+                ZipFile.CreateFromDirectory(workingDirectory, zipName, CompressionLevel.Fastest, true);
+                listing.DigitalFilePath = zipName;
+
+
                 var etsyListing = _etsyService.CreateListing(listing);
 
             }
@@ -104,7 +72,85 @@ namespace EtsyPortal
             }
         }
 
-        private static string FindWatermarkedImage(string workingDirectory)
+        private static string GetWorkingDirectory()
+        {
+            var workingDirectory = SettingsHelper.GetAppSetting("workingDirectory");
+
+            if (workingDirectory.IsNullOrEmpty())
+            {
+                Console.Write("Enter working directory: ");
+                workingDirectory = Console.ReadLine();
+                SettingsHelper.SetAppSetting("workingDirectory", workingDirectory);
+            }
+            else
+            {
+                Console.Write(
+                    $"Working directory is currently set to {workingDirectory}.  Do you want to change it (Y if yes, Enter if No)?");
+                if (Console.ReadLine().Trim().ToUpper() == "Y")
+                {
+                    var newDir = string.Empty;
+                    while (workingDirectory.IsNullOrEmpty())
+                    {
+                        Console.Write("Enter working directory: ");
+                        newDir = Console.ReadLine();
+                        //detect whether its a directory or file
+                        if (newDir.IsNullOrEmpty())
+                        {
+                            continue;
+                        }
+                        if ((File.GetAttributes(newDir) & FileAttributes.Directory) != FileAttributes.Directory)
+                        {
+                            continue;
+                        }
+                        workingDirectory = newDir;
+                    }
+                }
+            }
+            return workingDirectory;
+        }
+
+        private static string GetZipName(string workingDirectory)
+        {
+            var dir = Directory.GetFiles(workingDirectory).ToList();
+            if (dir.Count == 0)
+            {
+                throw new Exception("Unable to get file name.  No files in Directory");
+            }
+            return Path.GetFileName(dir.First());
+        }
+
+        private static string[] ParseTags(IList<string> args)
+        {
+            var tagArray = new string[13];
+
+            if (!args[3].IsNullOrEmpty())
+            {
+                args[3] = args[3].ToUpper();
+            }
+
+            Tags tags;
+            var tagArrayIndex = 0;
+            if (Enum.TryParse(args[3], out tags))
+            {
+                var standardTags = tags.StringValue().Split(',');
+                for (int i = 0; i < standardTags.Count(); i++)
+                {
+                    tagArray[tagArrayIndex] = standardTags[i];
+                    tagArrayIndex++;
+                }
+            }
+            if (args.Count == 5)
+            {
+                var additionalTags = args[4].ToString().Split();
+                for (var i = 0; i < additionalTags.Count(); i++)
+                {
+                    tagArray[tagArrayIndex] = additionalTags[i];
+                }
+            }
+            return tagArray;
+        }
+
+        private static Image GetWatermarkedImage(string workingDirectory)
         {
             var dir = Directory.GetFiles(workingDirectory).ToList();
             var file = string.Empty;
@@ -121,7 +167,11 @@ namespace EtsyPortal
                 throw new InvalidDataException("Can not locate watermarked file!");
             }
 
-            return file;
+            var image = Image.FromFile(file);
+
+            File.Delete(file);
+
+            return image;
         }
     }
 }

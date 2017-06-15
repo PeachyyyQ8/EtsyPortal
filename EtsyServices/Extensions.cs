@@ -1,4 +1,5 @@
-﻿using EtsyServicer.DomainObjects;
+﻿using System;
+using EtsyServicer.DomainObjects;
 
 namespace EtsyServices
 {
@@ -20,6 +21,16 @@ namespace EtsyServices
                 }
             }
             return false;
+        }
+
+        public static string StringValue(this Enum value)
+        {
+            if (value == null)
+            {
+                throw new Exception("Unable to get string value from enum.");
+            }
+
+            return StringEnum.GetStringValue(value);
         }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.IO;
 using System.Runtime.Serialization;
 using EtsyServicer.DomainObjects.Enums;
 
@@ -42,6 +43,7 @@ namespace EtsyServices.DomainObjects
         [DataMember(Name = "image_ids")]
         public List<string> ImageIds { get; set; }
 
-        public string Image { get; set; }
+        public ListingImage[] Images { get; set; }
+        public string DigitalFilePath { get; set; }
     }
 }

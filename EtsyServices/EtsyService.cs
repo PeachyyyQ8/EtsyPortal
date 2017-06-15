@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Diagnostics;
 using System.Net;
@@ -143,11 +144,44 @@ namespace EtsyServices
                     "Auth token has not been set.  Please set the auth token before calling an authenticated service.");
             }
 
+            var newlisting = AddListing(listing);
+            listing.ID = newlisting.ID;
+
+            bool imageAdded = AddListingImage(listing);
+            return newlisting;
+
+
+        }
+
+        private bool AddListingImage(Listing listing)
+        {
+            RestRequest request = new RestRequest($"listings/{listing.ID}/images", Method.POST);
+
+            _restClient.Authenticator = OAuth1Authenticator.ForProtectedResource(_token.ApiKey, _token.SharedSecret, _token.Key,
+                _token.AuthTokenSecret);
+
+            request.AddHeader("Accept", "application/json");
+            request.Parameters.Clear();
+            foreach (var image in listing.Images)
+            {
+                request.AddFile("image", image.ImagePath);
+                request.AddParameter("application/json", JsonConvert.SerializeObject(listing.Images), ParameterType.RequestBody);
+                var etsyResponse = _restClient.Execute(request);
+                if (etsyResponse.StatusCode != HttpStatusCode.Created)
+                {
+                    throw new Exception(
+                        $"Create Listing Image failed.  Please check your parameters and try again. Error: {etsyResponse.Content}");
+                }
+            }
+            return true;
+        }
+
+        private Listing AddListing(Listing listing)
+        {
             RestRequest request = new RestRequest("listings", Method.POST);
 
             _restClient.Authenticator = OAuth1Authenticator.ForProtectedResource(_token.ApiKey, _token.SharedSecret, _token.Key,
                 _token.AuthTokenSecret);
-            var client = new RestClient("http://www.example.com/1/2");
 
             request.AddHeader("Accept", "application/json");
             request.Parameters.Clear();
@@ -160,6 +194,7 @@ namespace EtsyServices
                     $"Create Listing failed.  Please check your parameters and try again. Error: {etsyResponse.Content}");
             }
             var listingResponse = JsonConvert.DeserializeObject<ListingResponse>(etsyResponse.Content);
+            
             return listingResponse.Listing[0];
         }
 

@@ -3,14 +3,15 @@ using System.Collections.Specialized;
 using System.Diagnostics;
 using System.Net;
 using EtsyServicer.DomainObjects;
+using EtsyServicer.DomainObjects.Enums;
+using EtsyServices.DomainObjects;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using RestSharp;
 using RestSharp.Authenticators;
 
 namespace EtsyServices
 {
-    /// <summary>
-    /// RestSharp documentation: https://github.com/restsharp/RestSharp/wiki
-    /// </summary>
     public class EtsyService : IEtsyService
     {
         #region private fields
@@ -121,7 +122,10 @@ namespace EtsyServices
                 Console.Write("Enter verifier from Etsy: ");
                 var readLine = Console.ReadLine();
                 if (!readLine.IsNullOrEmpty())
-                { verifier = readLine.Trim(); }
+                {
+                    if (readLine != null) verifier = 
+                            readLine.Trim();
+                }
             }
 
             ObtainTokenCredentials(token, tempSecret, verifier, out authToken, out authSecret);
@@ -143,25 +147,20 @@ namespace EtsyServices
 
             _restClient.Authenticator = OAuth1Authenticator.ForProtectedResource(_token.ApiKey, _token.SharedSecret, _token.Key,
                 _token.AuthTokenSecret);
+            var client = new RestClient("http://www.example.com/1/2");
 
-            request.AddParameter("title", "This is a test");
-            request.AddParameter("description", "Test Description");
-            request.AddParameter("status", "draft");
-            request.AddParameter("quantity", "1");
-            request.AddParameter("price", "1");
-            request.AddParameter("is_supply", "false");
-            request.AddParameter("category_id", "68887420");
-            request.AddParameter("when_made", "2010_2017");
-            request.AddParameter("who_made", "i_did");
-            request.AddParameter("is_digital", true);
-            request.AddParameter("shipping_template_id", 30116314577);
+            request.AddHeader("Accept", "application/json");
+            request.Parameters.Clear();
+            request.AddParameter("application/json", JsonConvert.SerializeObject(listing), ParameterType.RequestBody);
+
             var etsyResponse = _restClient.Execute(request);
-            if (etsyResponse.StatusCode != HttpStatusCode.OK)
+            if (etsyResponse.StatusCode != HttpStatusCode.Created)
             {
-                throw new Exception(string.Format("Create Listing failed.  Please check your parameters and try again. Error: {0}", etsyResponse.Content));
+                throw new Exception(
+                    $"Create Listing failed.  Please check your parameters and try again. Error: {etsyResponse.Content}");
             }
-
-            return listing;
+            var listingResponse = JsonConvert.DeserializeObject<ListingResponse>(etsyResponse.Content);
+            return listingResponse.Listing[0];
         }
 
         public string GetPermissionScopes()
@@ -178,6 +177,17 @@ namespace EtsyServices
             IRestResponse irestResponse = _restClient.Execute(restRequest);
 
             return irestResponse.Content;
+        }
+
+        public Listing GetListingByID(int listingId)
+        {
+            RestRequest restRequest = new RestRequest("listings/" + listingId, Method.GET);
+            restRequest.AddParameter("api_key", _token.ApiKey);
+            IRestResponse irestResponse = _restClient.Execute(restRequest);
+
+            var temp = irestResponse.Content;
+            //todo: convert to listing
+            return new Listing();
         }
         #endregion
     }

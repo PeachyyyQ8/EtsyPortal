@@ -1,4 +1,5 @@
 ﻿using EtsyServicer.DomainObjects;
+using EtsyServices.DomainObjects;
 
 namespace EtsyServices
 {
@@ -7,5 +8,6 @@ namespace EtsyServices
         Listing CreateListing(Listing listing);
         string GetPermissionScopes();
         void Configure(string[] permissions);
+        Listing GetListingByID(int listingID);
     }
 }

@@ -44,6 +44,8 @@ namespace EtsyServices.DomainObjects
         public List<string> ImageIds { get; set; }
 
         public ListingImage[] Images { get; set; }
-        public string DigitalFilePath { get; set; }
+        public DigitalFile[] DigitalFiles { get; set; }
+
+
     }
 }

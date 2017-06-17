@@ -40,6 +40,7 @@
     <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.Drawing" />
+    <Reference Include="System.IO.Compression.FileSystem" />
     <Reference Include="System.Runtime.Serialization" />
     <Reference Include="System.Web" />
     <Reference Include="System.Xml.Linq" />
@@ -51,6 +52,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DomainObjects\AuthToken.cs" />
+    <Compile Include="DomainObjects\DigitalFile.cs" />
     <Compile Include="DomainObjects\Enums\ListingStatus.cs" />
     <Compile Include="DomainObjects\Listing.cs" />
     <Compile Include="DomainObjects\ListingImage.cs" />

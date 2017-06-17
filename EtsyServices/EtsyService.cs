@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Diagnostics;
 using System.Net;
@@ -7,7 +6,6 @@ using EtsyServicer.DomainObjects;
 using EtsyServicer.DomainObjects.Enums;
 using EtsyServices.DomainObjects;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using RestSharp;
 using RestSharp.Authenticators;
 
@@ -144,33 +142,82 @@ namespace EtsyServices
                     "Auth token has not been set.  Please set the auth token before calling an authenticated service.");
             }
 
-            var newlisting = AddListing(listing);
-            listing.ID = newlisting.ID;
+            var createdListing = AddListing(listing);
+            listing.ID = createdListing.ID;
 
-            bool imageAdded = AddListingImage(listing);
-            return newlisting;
-
-
+            AddListingImage(listing.ID, listing.Images);
+            AddListingFile(listing.ID, listing.DigitalFiles);
+            listing.State = ListingStatus.Active;
+            createdListing = UpdateListing(listing);
+            return createdListing;
         }
 
-        private bool AddListingImage(Listing listing)
+        public Listing UpdateListing(Listing listing)
         {
-            RestRequest request = new RestRequest($"listings/{listing.ID}/images", Method.POST);
+            RestRequest request = new RestRequest($"listings/{listing.ID}", Method.PUT);
+
+            _restClient.Authenticator = OAuth1Authenticator.ForProtectedResource(_token.ApiKey, _token.SharedSecret,
+                _token.Key,
+                _token.AuthTokenSecret);
+
+            request.AddHeader("Accept", "application/json");
+            request.Parameters.Clear();
+            //request.AddParameter("application/json", JsonConvert.SerializeObject(listing), ParameterType.RequestBody);
+            request.AddParameter("state", "active");
+            var etsyResponse = _restClient.Execute(request);
+            if (etsyResponse.StatusCode != HttpStatusCode.OK)
+            {
+                throw new Exception(
+                    $"Create Listing failed.  Please check your parameters and try again. Error: {etsyResponse.Content}");
+            }
+            var listingResponse = JsonConvert.DeserializeObject<ListingResponse>(etsyResponse.Content);
+
+            return listingResponse.Listing[0];
+        }
+
+        public bool AddListingImage(string listingId, ListingImage[] images)
+        {
+            RestRequest request = new RestRequest($"listings/{listingId}/images", Method.POST);
 
             _restClient.Authenticator = OAuth1Authenticator.ForProtectedResource(_token.ApiKey, _token.SharedSecret, _token.Key,
                 _token.AuthTokenSecret);
 
             request.AddHeader("Accept", "application/json");
             request.Parameters.Clear();
-            foreach (var image in listing.Images)
+            foreach (var image in images)
             {
                 request.AddFile("image", image.ImagePath);
-                request.AddParameter("application/json", JsonConvert.SerializeObject(listing.Images), ParameterType.RequestBody);
+                request.AddParameter("application/json", JsonConvert.SerializeObject(images), ParameterType.RequestBody);
                 var etsyResponse = _restClient.Execute(request);
                 if (etsyResponse.StatusCode != HttpStatusCode.Created)
                 {
                     throw new Exception(
                         $"Create Listing Image failed.  Please check your parameters and try again. Error: {etsyResponse.Content}");
+                }
+            }
+            return true;
+        }
+
+        public bool AddListingFile(string listingId, DigitalFile[] files)
+        {
+            RestRequest request = new RestRequest($"listings/{listingId}/files", Method.POST);
+
+            _restClient.Authenticator = OAuth1Authenticator.ForProtectedResource(_token.ApiKey, _token.SharedSecret, _token.Key,
+                _token.AuthTokenSecret);
+
+            request.AddHeader("Accept", "application/json");
+            request.Parameters.Clear();
+            foreach (var file in files)
+            {
+                request.AddFile("file", file.Path);
+                request.AddParameter("name", file.Name);
+                request.AddParameter("rank", file.Rank);
+                //request.AddParameter("application/json", JsonConvert.SerializeObject(file), ParameterType.RequestBody);
+                var etsyResponse = _restClient.Execute(request);
+                if (etsyResponse.StatusCode != HttpStatusCode.OK)
+                {
+                    throw new Exception(
+                        $"Create Listing File failed.  Please check your parameters and try again. Error: {etsyResponse.Content}");
                 }
             }
             return true;

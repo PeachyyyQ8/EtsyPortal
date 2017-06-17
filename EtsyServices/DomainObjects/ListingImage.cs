@@ -23,5 +23,7 @@ namespace EtsyServices.DomainObjects
 
         [DataMember(Name = "is_watermarked")]
         public bool IsWatermarked { get; set; }
+
+        public string ImagePath { get; set; }
     }
 }
